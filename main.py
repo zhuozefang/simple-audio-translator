@@ -58,9 +58,6 @@ def transcribe_start():
 
     global_map[trans_key]['Progress'] = f"Progress: 0.00%"
     input_file = global_map[trans_key]['file_path']
-    # print(input_file)
-    #return f"{input_file}"
-    # input_file = "./Mei-Ling.wav"
 
     # Create the output directory if it doesn't exist
     current_date = date.today().strftime("%Y-%m-%d")
@@ -83,12 +80,9 @@ def transcribe_start():
     progress = {"Progress": f"Progress: 3.00%"}
     global_map[trans_key] = progress
 
-    # transcriber = WhisperTranscriber("base")
     lang = "en"
     out_put_array = []
     for path in file_list:
-        #  text = transcriber.whisper_transcribe(path, "Chinese")
-        #  print(text)
         # 调用 whisper 命令
         command = ["whisper", path, "--model", "base", "--language", lang, "--output_format", "srt", "--output_dir", output_dir]
         subprocess.run(command, capture_output=True, text=False)
@@ -178,17 +172,6 @@ def split_audio(input_file, output_dir, chunk_length_ms= 2 * 60 * 1000):
 
 
 
-
-# class WhisperTranscriber(object):
-#     def __init__(self, model_name):
-#         self.model = whisper.load_model(model_name)
-
-#     def whisper_transcribe(self, audio_path, lang):
-#         audio = self.model.transcribe(audio_path, fp16=False, language=lang)
-#         return audio['text']
-
-
-
 def read_srt(file_path):
     subs = pysrt.open(file_path)
     return subs
@@ -251,112 +234,3 @@ def load_from_json(file_path):
 
 if __name__ == '__main__':
     app.run()
-
-    # input_file = "./more-than-1-m.mp3"
-
-    # # Create the output directory if it doesn't exist
-    # current_date = date.today().strftime("%Y-%m-%d")
-    # output_root_dir = f"./media_{current_date}"
-    # os.makedirs(output_root_dir, exist_ok=True)
-    # os.chmod(output_root_dir, 0o777)
-
-    # # partition dir
-    # partition_dir = f"{output_root_dir}/partition/"
-    # os.makedirs(partition_dir, exist_ok=True)
-    # os.chmod(partition_dir, 0o777)
-
-    # # output dir
-    # output_dir = f"{output_root_dir}/output/"
-    # os.makedirs(output_dir, exist_ok=True)
-    # os.chmod(output_dir, 0o777)
-
-
-    # file_list = split_audio(input_file, partition_dir)
-    
-    # # transcriber = WhisperTranscriber("base")
-    # lang = "en"
-    # out_put_array = []
-    # for path in file_list:
-    #     #  text = transcriber.whisper_transcribe(path, "Chinese")
-    #     #  print(text)
-    #     # 调用 whisper 命令
-    #     command = ["whisper", path, "--model", "base", "--language", lang, "--output_format", "srt", "--output_dir", output_dir]
-    #     subprocess.run(command, capture_output=True, text=False)
-    #     print("Success")
-    #     srt_name = os.path.splitext(os.path.basename(path))[0]
-    #     srt_path = f"{output_dir}{srt_name}.srt"
-    #     out_put_array.append(srt_path)
-
-    
-    # print(len(out_put_array))
-
-    # for input_path in out_put_array:
-    #     srt_name = os.path.splitext(os.path.basename(input_path))[0]
-    #     output_path = f"./{srt_name}[translated].srt"
-    #     translate_srt(input_path, output_path)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Set your API key
-# openai.api_key = "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"
-
-# Open the audio file
-# audio_file = open("./mixkit-tech-house-vibes.mp3", "rb")
-
-# Transcribe the audio file
-# transcript = openai.Audio.transcribe("whisper-1", open("./mixkit-tech-house-vibes.mp3", "rb"), language="en")
-
-# # Get the transcribed text
-# transcribed_text = transcript["text"]
-
-# # Print and save the transcribed text
-# print(transcribed_text)
-
-# with open("./transcription.txt", "w", encoding="utf-8") as file:
-#     file.write(transcribed_text)
-
-# model = whisper.load_model("base")
-# result = model.transcribe("./jfk.flac")
-# print(result["text"])
-
-# model = whisper.load_model("base")
-
-# # load audio and pad/trim it to fit 30 seconds
-# audio = whisper.load_audio("./chicken-beauty_music.mp3")
-# audio = whisper.pad_or_trim(audio)
-
-# # make log-Mel spectrogram and move to the same device as the model
-# mel = whisper.log_mel_spectrogram(audio).to(model.device)
-
-# # detect the spoken language
-# _, probs = model.detect_language(mel)
-# print(f"Detected language: {max(probs, key=probs.get)}")
-
-# # decode the audio
-# options = whisper.DecodingOptions(fp16 = False)
-# result = whisper.decode(model, mel, options)
-
-# # print the recognized text
-# print(result.text)
-# with open("./transcription.txt", "w", encoding="utf-8") as file:
-#     file.write(result.text)
-
-# hello world
-# print("hello world")
-# childList = ["string", True, 0]
-# classmagtes = ["m", "a", "b", 1, True, childList]
-# classmagtes.append("c")
-# print(classmagtes[-2]
