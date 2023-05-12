@@ -10,29 +10,63 @@ from pydub import AudioSegment
 import os
 import shutil
 
-Api_key = "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"
-openai.api_key = Api_key
+
+# 默认值
+DEFAULT_API_KEY = "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"
+DEFAULT_CHUNK_LENGTH = 5
+
+# 全局变量
+api_key = DEFAULT_API_KEY
+chunk_length = DEFAULT_CHUNK_LENGTH
+
+def get_config(filename):
+    global api_key, chunk_length
+    try:
+        with open(filename, 'r') as file:
+            config = json.load(file)
+        
+        # 从配置文件中获取参数值
+        api_key = config.get('api_key', DEFAULT_API_KEY)
+        chunk_length = config.get('chunk_length', DEFAULT_CHUNK_LENGTH)
+
+    except FileNotFoundError:
+        print("配置文件不存在。创建新文件并保存默认值。")
+        config = {
+            'api_key': DEFAULT_API_KEY,
+            'chunk_length': DEFAULT_CHUNK_LENGTH
+        }
+        with open(filename, 'w') as file:
+            json.dump(config, file)
+
+    except json.JSONDecodeError:
+        print("配置文件解析错误。使用默认值。")
+
 
 app = Flask(__name__)
-
 
 # 设置openai api_key
 @app.route('/openai/api_key_set', methods=['POST'])
 def api_key_set():
+    req = request.get_json()
+    api_key = req.get('api_key')
+    chunk_length = req.get('chunk_length')
     try:
-        req = request.get_json()
-        api_key = req.get('api_key')
-        if req is None or 'api_key' not in req or not api_key:
-            return jsonify({'error': 'Missing parameter'}), 400
+        with open('./config.json', 'r') as file:
+            config = json.load(file)
         
-        global Api_key
-        Api_key = api_key
-        print(Api_key)
-        return jsonify({'message': 'Success'}), 200
-    except Exception as e:
-        # 捕获并处理函数运行时的错误
-        error_message = str(e)
-        return jsonify({'error': error_message}), 500
+        config['api_key'] = api_key if api_key else config['api_key']
+        config['chunk_length'] = int(chunk_length) if chunk_length else config['chunk_length']
+        
+        with open('./config.json', 'w') as file:
+            json.dump(config, file)
+
+        return jsonify({'message': 'Config updated successfully'}), 200
+
+    except FileNotFoundError:
+        return jsonify({'message': 'Config file not found'}), 500
+
+    except json.JSONDecodeError:
+        return jsonify({'message': 'Error decoding config file'}), 500
 
 
 # 上传文件
@@ -88,7 +122,9 @@ def upload_file():
 @app.route('/transcribe/start', methods=['POST'])
 def transcribe_start():
     try:
-        global global_map
+        global global_map, api_key
+        openai.api_key = api_key
+
         req = request.get_json()
         trans_key = req.get('trans_key')
         global_map = load_from_json("./global_map_json")
@@ -144,13 +180,11 @@ def transcribe_start():
 
         progress = {"Progress": "5.00%"}
         global_map[trans_key] = progress
+        total_len = len(out_put_array)
         for input_path in out_put_array:
             srt_name = os.path.splitext(os.path.basename(input_path))[0]
             output_path = f"{trans_dir}/{srt_name}[translated].srt"
-
-            print(input_path)
-            print(output_path)
-            translate_srt(trans_key, input_path, output_path)
+            translate_srt(trans_key, input_path, output_path, total_len)
 
         return "Job Done", 200
     except Exception as e:
@@ -167,20 +201,16 @@ def transcribe_progress():
     try:
         # trans_key = request.args.get('trans_key')
         # 在这里进行处理和逻辑操作
-        # print(global_map)
         global global_map
-        result = {'data': global_map}
-        return jsonify(result)
-
-        # return jsonify(global_map)
-        if trans_key in global_map:
-            trans_progress = global_map[trans_key]
-            inner_data = {'message': trans_progress} if trans_progress else {'message': '0%'}
-            result = {'data': inner_data}
-            return jsonify(result)
+        # global_map = load_from_json("./global_map_json")
+        if not global_map:
+            return {'data': {}}
         
-        inner_data = {'message': 'not found'}
-        result = {'data': inner_data}
+        process_list = {}
+        for key, value in global_map.items():
+            process_list[key] = {"Progress": value['Progress']}
+
+        result = {'data': process_list}
         return jsonify(result)
     except Exception as e:
         # 捕获并处理函数运行时的错误
@@ -248,8 +278,6 @@ def upload_file_list():
 
 
 
-
-
 def get_files_sorted_by_time(directory):
     file_list = []
 
@@ -257,7 +285,7 @@ def get_files_sorted_by_time(directory):
         for file in files:
             file_path = os.path.join(root, file)
             # 获取文件添加时间： sec
-            file_time = int(os.path.getctime(file_path))
+            file_time = os.path.getctime(file_path)
             file_list.append((file_path, file_time))
 
     sorted_files = sorted(file_list, key=lambda x: x[1])  # 按文件添加时间排序
@@ -270,7 +298,7 @@ def generate_random_string(length):
     return random_string
 
 
-#切分成5分钟长的音频片段，您可以根据自己音频文件的具体情况进行切分
+#切分成分钟长的音频片段，您可以根据自己音频文件的具体情况进行切分
 def split_audio(input_file, output_dir, chunk_length_ms= 5 * 60 * 1000):
     string_array = []
     # Load the audio file
@@ -320,7 +348,7 @@ def write_srt(subs, translated_subs, output_path):
         subs[i].text = f"{subs[i].text}\n{translated_subs[i].text}"
     subs.save(output_path, encoding="utf-8")
 
-def translate_srt(trans_key, file_path, output_path):
+def translate_srt(trans_key, file_path, output_path, total):
     global global_map
     subs = read_srt(file_path)
     translated_subs = []
@@ -333,9 +361,10 @@ def translate_srt(trans_key, file_path, output_path):
 
         # Set progress
         ps = (i + 1) / total_subs * 100
-        progress = {"Progress": f"{ps:.2f}%"}
+        total_progress = ps / total
+        progress = {"Progress": f"{total_progress:.2f}%"}
         global_map[trans_key] = progress
-        print(f"Progress: {ps:.2f}%")
+        print(f"Progress: {total_progress:.2f}%")
 
     write_srt(subs, translated_subs, output_path)
 
@@ -359,4 +388,5 @@ def load_from_json(file_path):
 
 
 if __name__ == '__main__':
+    get_config('./config.json')
     app.run()
