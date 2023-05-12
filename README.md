@@ -16,6 +16,7 @@ response example:
    }  
 }
 ```  
+
   
 2./transcribe/start
 POST  
@@ -30,6 +31,7 @@ response example:
 Job Done
 ```   
   
+    
 3./transcribe/progress
 GET   
 ```    
@@ -43,6 +45,7 @@ response example:
 }  
 ```  
 
+  
 4./transcribe/result_content 
 POST  
 use form-data.raw   
@@ -58,6 +61,7 @@ response example:
 }
 ```  
 
+  
 5./openai/api_key_set
 POST  
 use form-data.raw  
@@ -72,6 +76,7 @@ response:
 }
 ```  
 
+  
 6./upload_file_list
 GET   
 ```  
