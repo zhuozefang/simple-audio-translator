@@ -70,6 +70,7 @@ response:
 {
     "message": "Success"
 }
+```  
 
 6./upload_file_list
 GET   
